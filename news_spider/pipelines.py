@@ -45,6 +45,7 @@ class NewsSpiderPipeline(object):
                 print('---------------------------------------')
                 return item
             news_file = codecs.open(news_body_path, 'w', 'utf-8')
-            news_file.write(item['body'])
+            line1 = json.dumps(dict(item), ensure_ascii=False)
+            news_file.write(line1)
             news_file.close()
             return item

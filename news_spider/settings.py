@@ -14,7 +14,10 @@ BOT_NAME = 'news_spider'
 SPIDER_MODULES = ['news_spider.spiders']
 NEWSPIDER_MODULE = 'news_spider.spiders'
 
+SCHEDULER = "scrapy_redis.scheduler.Scheduler"
+DUPEFILTER_CLASS = "scrapy_redis.dupefilter.RFPDupeFilter"
 
+REDIS_URL = 'redis://192.168.0.179:6379'
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'news_spider (+http://www.yourdomain.com)'
 
@@ -66,7 +69,10 @@ ROBOTSTXT_OBEY = False
 # See http://scrapy.readthedocs.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
    'news_spider.pipelines.NewsSpiderPipeline': 300,
+   'scrapy_redis.pipelines.RedisPipeline': 301
 }
+
+
 
 
 DEFAULT_REQUEST_HEADERS = {
@@ -99,3 +105,4 @@ DEFAULT_REQUEST_HEADERS = {
 #HTTPCACHE_DIR = 'httpcache'
 #HTTPCACHE_IGNORE_HTTP_CODES = []
 #HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
+FEED_EXPORT_ENCODING = "utf-8"
