@@ -74,11 +74,13 @@ class NeteaseNewsSpider(CrawlSpider):
         result = json.loads(response.text)
         item = NewsItem()
         body=BodyItem()
+        body['type']='body'
         body['body']=response.meta['body']
         body['time'] = response.meta['time']
         body['source'] = response.meta['source']
         body['newsId'] = response.meta['newsId']
         yield body
+        item['type']='item'
         item['source'] = response.meta['source']
         item['newsId'] = response.meta['newsId']
         item['url'] = response.meta['url']
@@ -148,12 +150,14 @@ class SinaNewsSpider(CrawlSpider):
         else:
             comments = 0
         body = BodyItem()
+        body['type'] = 'body'
         body['body'] = response.meta['body']
         body['time'] = response.meta['time']
         body['source'] = response.meta['source']
         body['newsId'] = response.meta['newsId']
         yield body
         item = NewsItem()
+        item['type'] = 'item'
         item['comments'] = comments
         item['title'] = response.meta['title']
         item['url'] = response.meta['url']
@@ -208,12 +212,14 @@ class ChinaNewsSpider(CrawlSpider):
 
     def parse_comment(self, response):
         body = BodyItem()
+        body['type'] = 'body'
         body['body'] = response.meta['body']
         body['time'] = response.meta['time']
         body['source'] = response.meta['source']
         body['newsId'] = response.meta['newsId']
         yield body
         item = NewsItem()
+        item['type'] = 'item'
         item['comments'] =0
         item['title'] = response.meta['title']
         item['url'] = response.meta['url']

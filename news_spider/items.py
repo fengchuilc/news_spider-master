@@ -10,7 +10,7 @@ from scrapy import Item, Field
 class NewsItem(Item):
     # define the fields for your item here like:
     # name = scrapy.Field()
-
+    type = Field()
     source = Field()
     newsId = Field()
     title = Field()
@@ -21,6 +21,7 @@ class NewsItem(Item):
     body=Field()
 
 class BodyItem(Item):
+    type = Field()
     time = Field()
     source = Field()
     newsId = Field()
