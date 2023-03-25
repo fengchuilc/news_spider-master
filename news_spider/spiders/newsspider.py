@@ -4,7 +4,10 @@
 
 import random
 import html
-from news_spider.items import NewsItem, BodyItem
+
+from scrapy_redis.spiders import RedisCrawlSpider
+
+from news_spider.items import NewsItem
 from news_spider.settings import DEFAULT_REQUEST_HEADERS
 from scrapy.spiders import CrawlSpider, Rule
 from scrapy.linkextractors.lxmlhtml import LxmlLinkExtractor
@@ -24,11 +27,12 @@ def ListCombiner(lst):
         .replace('[]','')
 
 
-class NeteaseNewsSpider(CrawlSpider):
+class NeteaseNewsSpider(RedisCrawlSpider):
     name = "netease_news_spider"
-    allowed_domains = ['163.com']
-    start_urls = ['https://news.163.com',
-                  ]
+    redis_key = 'news_netease'
+    # allowed_domains = ['163.com']
+    # start_urls = ['https://news.163.com',
+    #               ]
 
     # http://news.163.com/17/0823/20/CSI5PH3Q000189FH.html
 
@@ -38,6 +42,10 @@ class NeteaseNewsSpider(CrawlSpider):
         Rule(LxmlLinkExtractor(allow=[url_pattern]), callback='parse_news', follow=True)
     ]
 
+    def __init__(self,*args,**kwargs):
+        domain=kwargs.pop('domain','')
+        self.allowed_domains = list(filter(None,domain.split(',')))
+        super(NeteaseNewsSpider,self).__init__(*args,**kwargs)
 
     def parse_news(self, response):
         ran = random.randint(1, 30)
@@ -49,12 +57,12 @@ class NeteaseNewsSpider(CrawlSpider):
         if response.css('.post_body'):
             body=html.unescape(response.css('.post_body').extract()[0])
         else:
-            body='null'
+            return
         if response.css('.post_info'):
             time_ = response.css('.post_info').extract()[0].split()[2]+'  '+response.css('.post_info').extract()[0].split()[3]
             # time_ = response.css('.post_info').extract()[1].split()[0]+' '+response.css('.post_info').extract()[1].split()[1]
         else:
-            time_ = 'unknown'
+            return
         newsId = pattern.group(1)
         url = response.url
         title=response.css('h1::text').extract()[0]
@@ -73,13 +81,6 @@ class NeteaseNewsSpider(CrawlSpider):
     def parse_comment(self, response):
         result = json.loads(response.text)
         item = NewsItem()
-        body=BodyItem()
-        body['type']='body'
-        body['body']=response.meta['body']
-        body['time'] = response.meta['time']
-        body['source'] = response.meta['source']
-        body['newsId'] = response.meta['newsId']
-        yield body
         item['type']='item'
         item['source'] = response.meta['source']
         item['newsId'] = response.meta['newsId']
@@ -88,13 +89,15 @@ class NeteaseNewsSpider(CrawlSpider):
         item['contents'] = response.meta['contents']
         item['comments'] = result['cmtAgainst'] + result['cmtVote'] + result['rcount']
         item['time'] = response.meta['time']
+        item['body']=response.meta['body']
         yield item
 
 
 
-class SinaNewsSpider(CrawlSpider):
+class SinaNewsSpider(RedisCrawlSpider):
     name = "sina_news_spider"
-    start_urls = ['https://news.sina.com.cn']
+    # start_urls = ['https://news.sina.com.cn']
+    redis_key = 'news_sina'
     # start_urls = ['https://edu.sina.com.cn/zxx/2023-02-16/doc-imyfwccx5310997.shtml']
     # https://finance.sina.com.cn/review/hgds/2017-08-25/doc-ifykkfas7684775.shtml
     # url_pattern = r'(https://(?:\w+\.)*news\.sina\.com\.cn)/.*/(\d{4}-\d{2}-\d{2})/doc-(.*)\.shtml'
@@ -104,6 +107,10 @@ class SinaNewsSpider(CrawlSpider):
     rules = [
         Rule(LxmlLinkExtractor(allow=[url_pattern]), callback='parse_news', follow=True)
     ]
+    def __init__(self,*args,**kwargs):
+        domain=kwargs.pop('domain','')
+        self.allowed_domains = list(filter(None,domain.split(',')))
+        super(SinaNewsSpider,self).__init__(*args,**kwargs)
 
     def parse_news(self, response):
         ran = random.randint(1, 30)
@@ -116,7 +123,7 @@ class SinaNewsSpider(CrawlSpider):
         if response.css('.article'):
             body = html.unescape(response.css('.article').extract()[0]).replace('src="//','src="https://')
         else:
-            body = 'null'
+            return
         try:
             if response.css('.date'):
                 time_=response.css('.date::text').get().strip().replace('年','-').replace('月','-').replace('日','')
@@ -124,9 +131,9 @@ class SinaNewsSpider(CrawlSpider):
                 t=response.css('#pub_date::text').get()
                 time_ = response.css('#pub_date::text').get().strip().replace('年','-').replace('月','-').replace('日',' ').split(' ')[0]+'  '+response.css('#pub_date::text').get().strip().replace('年','-').replace('月','-').replace('日',' ').split(' ')[1]
             else:
-                time_ = 'unknown'
+                return
         except:
-            time_='unknown'
+            return
         newsId = 'i'+sel.xpath("//meta[@name='publishid']").xpath('@content').extract()[0]
         url = response.url
         contents = ListCombiner(sel.xpath('//p/text()').extract()[:-3])
@@ -149,13 +156,6 @@ class SinaNewsSpider(CrawlSpider):
             comments = re.findall(r'"total": (\d*)\,', response.text)[0]
         else:
             comments = 0
-        body = BodyItem()
-        body['type'] = 'body'
-        body['body'] = response.meta['body']
-        body['time'] = response.meta['time']
-        body['source'] = response.meta['source']
-        body['newsId'] = response.meta['newsId']
-        yield body
         item = NewsItem()
         item['type'] = 'item'
         item['comments'] = comments
@@ -165,18 +165,24 @@ class SinaNewsSpider(CrawlSpider):
         item['source'] = response.meta['source']
         item['newsId'] = response.meta['newsId']
         item['time'] = response.meta['time']
+        item['body'] = response.meta['body']
         yield item
 
 
-class ChinaNewsSpider(CrawlSpider):
+class ChinaNewsSpider(RedisCrawlSpider):
     name = 'china_news_spider'
-
-    start_urls = ['https://www.chinanews.com.cn/']
+    redis_key = 'news_china'
+    # start_urls = ['https://www.chinanews.com.cn/']
     url_pattern = r'https://www.chinanews.com.cn/.*/[0-9]{4}/[0-9]{2}-[0-9]{2}/\d+.shtml'
 
     rules = [
         Rule(LxmlLinkExtractor(allow=[url_pattern]), callback='parse_news', follow=True)
     ]
+
+    def __init__(self,*args,**kwargs):
+        domain=kwargs.pop('domain','')
+        self.allowed_domains = list(filter(None,domain.split(',')))
+        super(ChinaNewsSpider,self).__init__(*args,**kwargs)
 
     def parse_news(self, response):
         ran = random.randint(1, 30)
@@ -188,14 +194,16 @@ class ChinaNewsSpider(CrawlSpider):
         source = 'china'
         if response.css('.content_maincontent_content'):
             body = html.unescape(response.css('.content_maincontent_content').extract()[0]).replace('src="//', 'src="https://')
+        else:
+            return
         if response.css("#newsdate"):
             date=response.css("#newsdate").attrib['value']
         else:
-            date=""
+            return
         if response.css("#newstime"):
             t=response.css("#newstime").attrib['value']
         else:
-            t=""
+            return
         time_=date+" "+t
         newsId =response.css("#newsid").attrib['value']
         url = response.url
@@ -211,13 +219,7 @@ class ChinaNewsSpider(CrawlSpider):
                                                                                })
 
     def parse_comment(self, response):
-        body = BodyItem()
-        body['type'] = 'body'
-        body['body'] = response.meta['body']
-        body['time'] = response.meta['time']
-        body['source'] = response.meta['source']
-        body['newsId'] = response.meta['newsId']
-        yield body
+
         item = NewsItem()
         item['type'] = 'item'
         item['comments'] =0
@@ -227,6 +229,7 @@ class ChinaNewsSpider(CrawlSpider):
         item['source'] = response.meta['source']
         item['newsId'] = response.meta['newsId']
         item['time'] = response.meta['time']
+        item['body'] = response.meta['body']
         yield item
 
 

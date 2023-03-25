@@ -19,10 +19,3 @@ class NewsItem(Item):
     comments = Field()
     time = Field()
     body=Field()
-
-class BodyItem(Item):
-    type = Field()
-    time = Field()
-    source = Field()
-    newsId = Field()
-    body=Field()

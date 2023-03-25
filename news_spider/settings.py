@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import news_spider
 
 # Scrapy settings for news_spider project
 #
@@ -9,15 +10,25 @@
 #     http://scrapy.readthedocs.org/en/latest/topics/downloader-middleware.html
 #     http://scrapy.readthedocs.org/en/latest/topics/spider-middleware.html
 
-BOT_NAME = 'news_spider'
-
+# MONGODB 主机环回地址127.0.0.1
+# MONGODB_HOST = '127.0.0.1'
+# # 端口号，默认是27017
+# MONGODB_PORT = 27017
+# # 设置数据库名称
+# MONGODB_DBNAME = 'news'
+# # 存放本次数据的表名称
+# MONGODB_ITEMS = 'items'
+# MONGODB_BODY = 'body'
+# BOT_NAME = 'news_spider'
+KAFKA_IP_PORT = ["192.168.0.180:9092","192.168.0.181:9092","192.168.0.182:9092"]
+KAFKA_TOPIC_NAME = "news"
 SPIDER_MODULES = ['news_spider.spiders']
 NEWSPIDER_MODULE = 'news_spider.spiders'
-
+#
 SCHEDULER = "scrapy_redis.scheduler.Scheduler"
 DUPEFILTER_CLASS = "scrapy_redis.dupefilter.RFPDupeFilter"
-
-REDIS_URL = 'redis://192.168.0.179:6379'
+SCHEDULER_PERSIST=True
+REDIS_URL = 'redis://192.168.0.105:6379'
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'news_spider (+http://www.yourdomain.com)'
 
@@ -68,8 +79,9 @@ ROBOTSTXT_OBEY = False
 # Configure item pipelines
 # See http://scrapy.readthedocs.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-   'news_spider.pipelines.NewsSpiderPipeline': 300,
-   'scrapy_redis.pipelines.RedisPipeline': 301
+   # 'news_spider.pipelines.MongoPipeline': 300,
+   'scrapy_redis.pipelines.RedisPipeline': 301,
+   'news_spider.pipelines.ScrapyKafkaPipeline': 300,
 }
 
 
